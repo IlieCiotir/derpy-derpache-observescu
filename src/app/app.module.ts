@@ -6,11 +6,11 @@ import { PainterModule } from './painter/painter.module';
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
   ],
   imports: [
     BrowserModule,
-    PainterModule
+    PainterModule,
   ],
   providers: [],
   bootstrap: [AppComponent]

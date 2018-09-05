@@ -1,6 +1,6 @@
 import { Component, OnInit, EventEmitter } from '@angular/core';
 import { delay, switchMap, map } from 'rxjs/operators';
-import { combineLatest, of, interval } from 'rxjs';
+import { combineLatest, of, interval, concat } from 'rxjs';
 
 interface Style {
   [key: string]: string;
@@ -19,12 +19,14 @@ export class PainterComponent implements OnInit {
 
   public x$ = of({ 'left': `300px` });
   public x2$ = of({ 'left': '700px' });
-  public x3$ = of({ 'left': '500px' });
+  public x3$ = of({ 'left': '400px' });
   public y$ = of({ 'top': `200px` });
-  public y2$ = of({ 'top': `600px` });
+  public y2$ = of({ 'top': `500px` });
 
   private rotate = 0;
   private rotate$ = this.fast.pipe(map(_ => ({ 'transform': `rotate(${this.rotate += 10}deg)` })));
+  private rotate2 = 0;
+  private rotate2$ = this.fast.pipe(map(_ => ({ 'transform': `rotate(${this.rotate2 += Math.random() * 100}deg)` })));
 
   private color = { r: 0, g: 100, b: 200 };
   private backgroundColor$ = this.faster.pipe(
@@ -32,26 +34,35 @@ export class PainterComponent implements OnInit {
   );
 
   private width = 10;
-  public width$ = this.slow.pipe(
-    map(_ => ({ 'width': `${(this.width += 3) % 30}vw` }))
-  );
+  public width$ = concat(of({}), this.faster)
+    .pipe(
+      map(_ => ({ 'width': `${(this.width += 3) % 30}vw` }))
+    );
+
+  private height = 5;
+  public height$ = concat(of({}), this.faster)
+    .pipe(
+      map(_ => ({
+        'height': `${this.height === 5 ? this.height = 10 : this.height = 5}vh`
+      }))
+    );
 
   public style$ = combineLatest(
-    this.rotate$, this.backgroundColor$, this.x$, this.y$, this.width$,
-    (rotate, background, x, y, width) => {
-      return Object.assign({}, rotate, background, x, y, width);
+    this.rotate$, this.x$, this.y$,
+    (rotate, x, y) => {
+      return Object.assign({}, rotate, x, y);
     });
 
   public style2$ = combineLatest(
-    this.rotate$, this.backgroundColor$, this.x2$, this.y$, this.width$,
-    (rotate, background, x, y, width) => {
-      return Object.assign({}, rotate, background, x, y, width);
+    this.rotate2$, this.x2$, this.y$,
+    (rotate, x, y, ) => {
+      return Object.assign({}, rotate, x, y);
     });
 
   public style3$ = combineLatest(
-    this.backgroundColor$, this.x3$, this.y2$, this.width$,
-    (background, x, y, width) => {
-      return Object.assign({}, background, x, y, width);
+    this.backgroundColor$, this.x3$, this.y2$, this.width$, this.height$,
+    (background, x, y, width, height) => {
+      return Object.assign({}, background, x, y, width, height);
     });
 
   constructor() { }
