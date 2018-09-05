@@ -1,0 +1,16 @@
+:host {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  >.rect {
+    position: absolute;
+    transition: all 0.5s;
+    background-color: red;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+  }
+}
