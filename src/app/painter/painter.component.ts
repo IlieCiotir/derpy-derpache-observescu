@@ -1,6 +1,6 @@
-import { Component, OnInit, EventEmitter } from '@angular/core';
-import { delay, switchMap, map } from 'rxjs/operators';
-import { combineLatest, of, interval, concat } from 'rxjs';
+import { Component, OnInit, EventEmitter, HostListener } from '@angular/core';
+import { delay, switchMap, map, concatMap, tap, skipWhile, filter, debounceTime } from 'rxjs/operators';
+import { combineLatest, of, interval, concat, from, merge } from 'rxjs';
 
 interface Style {
   [key: string]: string;
@@ -12,6 +12,9 @@ interface Style {
 })
 export class PainterComponent implements OnInit {
 
+  private keyboardInput = new EventEmitter<KeyboardEvent>();
+  private lastMouseInput = 0;
+  private mouseInput = new EventEmitter<MouseEvent>();
   private slow = interval(5000);
   private normal = interval(1000);
   private fast = interval(200);
@@ -23,8 +26,24 @@ export class PainterComponent implements OnInit {
   public y$ = of({ 'top': `200px` });
   public y2$ = of({ 'top': `500px` });
 
+
   private rotate = 0;
-  private rotate$ = this.fast.pipe(map(_ => ({ 'transform': `rotate(${this.rotate += 10}deg)` })));
+  private rotate$ = merge(
+    this.mouseInput.pipe(
+      debounceTime(100),
+      tap(() => this.lastMouseInput = Date.now()),
+      map(e => e.screenX)
+    ),
+    this.fast.pipe(
+      filter(() => Date.now() - this.lastMouseInput >= 500),
+      map(_ => this.rotate += 10)
+    )
+  )
+    .pipe(
+      map(r => ({ 'transform': `rotate(${r}deg)` }))
+    );
+
+
   private rotate2 = 0;
   private rotate2$ = this.fast.pipe(map(_ => ({ 'transform': `rotate(${this.rotate2 += Math.random() * 100}deg)` })));
 
@@ -65,8 +84,49 @@ export class PainterComponent implements OnInit {
       return Object.assign({}, background, x, y, width, height);
     });
 
+  private eyeBrowStyle: Style = {
+    'background-color': 'black',
+    'width': '150px',
+    'height': '30px'
+  };
+
+  private leftEyebrowX: Style = {
+    'left': '300px'
+  };
+
+  private rightEyeBrowX: Style = {
+    'left': '700px'
+  };
+
+  private eyeBrowY = [150, 50];
+
+  private eyeBrowY$ = concat(
+    of(150),
+    this.keyboardInput.pipe(
+      switchMap(() => from(this.eyeBrowY.concat(this.eyeBrowY.concat([]).reverse()))),
+      concatMap(v => of(v).pipe(delay(100)))
+    ))
+    .pipe(
+      map(v => ({ 'top': `${v}px` }))
+    );
+
+  public styleEyebrowLeft$ = combineLatest(of(this.eyeBrowStyle), of(this.leftEyebrowX), this.eyeBrowY$,
+    (common, x, y) => Object.assign({}, common, x, y));
+
+  public styleEyebrowRight$ = combineLatest(of(this.eyeBrowStyle), of(this.rightEyeBrowX), this.eyeBrowY$,
+    (common, x, y) => Object.assign({}, common, x, y));
+
   constructor() { }
 
   ngOnInit() { }
 
+  @HostListener('window:keyup', ['$event'])
+  public onKey(event) {
+    this.keyboardInput.emit(event);
+  }
+
+  @HostListener('window:mousemove', ['$event'])
+  public onMouseMove(event: MouseEvent) {
+    this.mouseInput.emit(event);
+  }
 }
