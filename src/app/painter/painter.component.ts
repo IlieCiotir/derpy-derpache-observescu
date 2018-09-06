@@ -30,9 +30,8 @@ export class PainterComponent implements OnInit {
   private rotate = 0;
   private rotate$ = merge(
     this.mouseInput.pipe(
-      debounceTime(100),
       tap(() => this.lastMouseInput = Date.now()),
-      map(e => e.screenX)
+      map(e => 360 * (e.screenX / window.innerWidth))
     ),
     this.fast.pipe(
       filter(() => Date.now() - this.lastMouseInput >= 500),
